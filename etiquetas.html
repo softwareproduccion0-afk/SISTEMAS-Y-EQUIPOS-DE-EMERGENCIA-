@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Etiquetas QR - Balizas y Detectores de Humo SST</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; color: #333; }
+        h1 { text-align: center; color: #1b5e20; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #555; margin-top: 0; margin-bottom: 20px; }
+        .no-print { text-align: center; margin-bottom: 30px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .btn-print { background-color: #1b5e20; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-print:hover { background-color: #2e7d32; }
+        .filter-select { padding: 10px 15px; font-size: 15px; border-radius: 8px; border: 2px solid #1b5e20; font-weight: bold; color: #1b5e20; background: white; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto; }
+        .etiqueta { background: white; border: 2px dashed #1b5e20; border-radius: 10px; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); page-break-inside: avoid; }
+        .etiqueta h3 { margin: 0 0 5px 0; color: #1b5e20; font-size: 18px; }
+        .etiqueta .ubicacion { font-weight: bold; font-size: 14px; color: #333; margin-bottom: 10px; min-height: 35px; display: flex; align-items: center; justify-content: center; }
+        .etiqueta img { width: 140px; height: 140px; margin: 5px 0; }
+        .etiqueta .tipo { font-size: 11px; color: #666; margin-top: 5px; font-weight: bold; text-transform: uppercase; }
+        @media print { .no-print { display: none; } body { background: white; padding: 0; } .grid-container { gap: 10px; } .etiqueta { border: 1px solid #999; box-shadow: none; } }
+    </style>
+</head>
+<body>
+
+    <h1>ETIQUETAS QR - BALIZAS Y DETECTORES DE HUMO</h1>
+    <p class="subtitle">FALCON FARMS DE COLOMBIA S.A – FINCA TORREMOLINOS | Escanea con la cámara del celular para abrir la ficha.</p>
+
+    <div class="no-print">
+        <select id="filtro-categoria" class="filter-select" onchange="renderEtiquetas()">
+            <option value="">Todas las categorías (24 etiquetas)</option>
+            <option value="BALIZAS ESTROBOSCÓPICAS">BALIZAS ESTROBOSCÓPICAS (12)</option>
+            <option value="DETECTORES DE HUMO">DETECTORES DE HUMO (12)</option>
+        </select>
+        <button class="btn-print" onclick="window.print()">🖨️ Imprimir Etiquetas</button>
+    </div>
+
+    <div class="grid-container" id="etiquetas-grid"></div>
+
+    <script>
+        // Ajusta este enlace con la URL exacta de tu aplicación publicada
+        const BASE_URL = "https://softwareproduccion0-afk.github.io/COMPLEMENTARIOS-/";
+
+        const masterComplementaries = [
+            // BALIZAS ESTROBOSCÓPICAS
+            { id: "BAL-001", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "OFICINA PRINCIPAL" },
+            { id: "BAL-002", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "OFICINA NOMINA" },
+            { id: "BAL-003", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "ALMACEN 1" },
+            { id: "BAL-004", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "ALMACEN 2" },
+            { id: "BAL-005", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA DE EMERGENCIA POSCOSECHA 1" },
+            { id: "BAL-006", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "BAÑOS POSCOSECHA" },
+            { id: "BAL-007", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA DE EMERGENCIA POSCOSECHA 2" },
+            { id: "BAL-008", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "CUARTO FRIO RECEPCION EXTERNA" },
+            { id: "BAL-009", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA CUARTO FRIO RECEPCION INTERNA" },
+            { id: "BAL-010", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA CUARTO FRIO AUXILIAR" },
+            { id: "BAL-011", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "CUARTO FRIO DESPACHOS EXTERNA" },
+            { id: "BAL-012", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "CUARTO FRIO DESPACHOS INTERNA" },
+            // DETECTORES DE HUMO
+            { id: "DET-001", categoria: "DETECTORES DE HUMO", ubicacion: "OFICINA PRINCIPAL" },
+            { id: "DET-002", categoria: "DETECTORES DE HUMO", ubicacion: "OFICINA DE ATENCION" },
+            { id: "DET-003", categoria: "DETECTORES DE HUMO", ubicacion: "OFICINA NOMINA" },
+            { id: "DET-004", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN PLAGUICIDAS" },
+            { id: "DET-005", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN 1" },
+            { id: "DET-006", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN 2" },
+            { id: "DET-007", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN 3" },
+            { id: "DET-008", categoria: "DETECTORES DE HUMO", ubicacion: "ARMADO DE CARTON 1" },
+            { id: "DET-009", categoria: "DETECTORES DE HUMO", ubicacion: "ARMADO DE CARTON 2" },
+            { id: "DET-010", categoria: "DETECTORES DE HUMO", ubicacion: "CUARTO FRIO DESPACHOS 1" },
+            { id: "DET-011", categoria: "DETECTORES DE HUMO", ubicacion: "CUARTO FRIO DESPACHOS 2" },
+            { id: "DET-012", categoria: "DETECTORES DE HUMO", ubicacion: "CUARTO FRIO AUXILIAR" }
+        ];
+
+        function renderEtiquetas() {
+            const contenedor = document.getElementById('etiquetas-grid');
+            const filtro = document.getElementById('filtro-categoria').value;
+            contenedor.innerHTML = '';
+
+            const lista = filtro
+                ? masterComplementaries.filter(item => item.categoria === filtro)
+                : masterComplementaries;
+
+            lista.forEach(item => {
+                const enlaceWeb = `${BASE_URL}?id=${encodeURIComponent(item.id)}`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(enlaceWeb)}`;
+
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'etiqueta';
+                tarjeta.innerHTML = `
+                    <h3>${item.id}</h3>
+                    <div class="ubicacion">${item.ubicacion}</div>
+                    <img src="${qrUrl}" alt="QR ${item.id}">
+                    <div class="tipo">${item.categoria}</div>
+                `;
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
+        renderEtiquetas();
+    </script>
+</body>
+</html>

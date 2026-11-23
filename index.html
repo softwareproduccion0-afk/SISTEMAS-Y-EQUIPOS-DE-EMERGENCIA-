@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspección de Balizas y Detectores de Humo - SST Finca Torremolinos</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Librería Especializada de Firma Digital -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <!-- Librería para generar archivos Excel (.xlsx) reales con imágenes, estilos y formato empresarial -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <!-- Librería para disparar la descarga del archivo generado -->
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1b5e20;
+            --primary-hover: #144618;
+            --secondary-color: #2e7d32;
+            --bg-light: #f8f9fa;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar-custom {
+            background-color: var(--primary-color);
+        }
+
+        .card-custom {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            background: #ffffff;
+        }
+
+        .header-title {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .table-sst th {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+        }
+
+        .table-sst td {
+            vertical-align: middle;
+        }
+
+        .signature-pad-container {
+            border: 2px dashed #1b5e20;
+            border-radius: 8px;
+            background-color: #ffffff;
+            position: relative;
+            width: 100%;
+            height: 180px;
+            touch-action: none;
+        }
+
+        canvas.signature-pad {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 6px;
+        }
+
+        .photo-preview {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+
+        .photo-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .btn-remove-photo {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--primary-color);
+        }
+
+        .badge-ok { background-color: #2e7d32; }
+        .badge-warn { background-color: #f57c00; }
+        .badge-danger { background-color: #c62828; }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 10px;
+                background: white;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top shadow-sm no-print">
+        <div class="container-fluid max-w-7xl">
+            <a class="navbar-brand d-flex align-items-center gap-2 font-bold" href="#">
+                <img src="assets/logo.png" alt="Logo de la empresa" style="height:36px; width:36px; object-fit:contain; border-radius:50%; background:#fff; padding:2px;">
+                <span>SST BALIZAS Y DETECTORES - INSPECCIÓN</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto gap-2">
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm w-100" onclick="showSection('dashboard')">
+                            <i class="fa-solid fa-chart-pie me-1"></i> Dashboard
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-light text-success btn-sm w-100 fw-bold" onclick="showSection('inspection-form')">
+                            <i class="fa-solid fa-clipboard-check me-1"></i> Nueva Inspección
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm w-100" onclick="showSection('history')">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> Historial y Evidencias
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-warning text-dark btn-sm w-100 fw-bold" onclick="exportToExcel()">
+                            <i class="fa-solid fa-file-excel me-1"></i> Exportar Excel
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- Main Container -->
+    <div class="container my-4 no-print">
+
+        <!-- SECTION 1: DASHBOARD -->
+        <div id="section-dashboard" class="app-section">
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card card-custom p-3 border-start border-4 border-success">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted fw-bold text-uppercase">Total Ítems</small>
+                                <h3 class="mb-0 fw-bold text-dark" id="dash-total">0</h3>
+                            </div>
+                            <i class="fa-solid fa-shield-halved fa-2x text-success opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card card-custom p-3 border-start border-4 border-primary">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted fw-bold text-uppercase">Cumplen (OK)</small>
+                                <h3 class="mb-0 fw-bold text-primary" id="dash-ok">0</h3>
+                            </div>
+                            <i class="fa-solid fa-circle-check fa-2x text-primary opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card card-custom p-3 border-start border-4 border-warning">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted fw-bold text-uppercase">Observación</small>
+                                <h3 class="mb-0 fw-bold text-warning" id="dash-warn">0</h3>
+                            </div>
+                            <i class="fa-solid fa-triangle-exclamation fa-2x text-warning opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card card-custom p-3 border-start border-4 border-danger">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted fw-bold text-uppercase">No Cumplen</small>
+                                <h3 class="mb-0 fw-bold text-danger" id="dash-danger">0</h3>
+                            </div>
+                            <i class="fa-solid fa-circle-xmark fa-2x text-danger opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accesos Rápidos -->
+            <div class="card card-custom p-4 text-center">
+                <h4 class="header-title mb-2"><i class="fa-solid fa-qrcode me-2"></i>Escanear Baliza o Detector de Humo In Situ</h4>
+                <p class="text-muted mb-1">FALCON FARMS DE COLOMBIA S.A – FINCA TORREMOLINOS</p>
+                <p class="text-muted small">Apunta con la cámara del celular al código QR del equipo para abrir su ficha de inspección.</p>
+                <div class="d-flex justify-content-center gap-2 flex-wrap mt-2">
+                    <button class="btn btn-success btn-lg px-4" onclick="openQRModal()">
+                        <i class="fa-solid fa-camera me-2"></i> Abrir Escáner de Cámara
+                    </button>
+                    <button class="btn btn-outline-secondary btn-lg" onclick="showSection('inspection-form')">
+                        <i class="fa-solid fa-pen-to-square me-2"></i> Registro Manual
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: FORMULARIO DE INSPECCIÓN DETALLADO -->
+        <div id="section-inspection-form" class="app-section d-none">
+            <form id="form-complementary" onsubmit="saveInspection(event)">
+                
+                <div class="card card-custom p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                        <h4 class="header-title mb-0"><i class="fa-solid fa-clipboard-list me-2"></i>Datos del Elemento a Inspeccionar</h4>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="openQRModal()">
+                            <i class="fa-solid fa-qrcode me-1"></i> Escanear QR
+                        </button>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Categoría / Tipo de Equipo *</label>
+                            <select id="comp-category" class="form-select fw-bold text-success" required onchange="onCategoryChange()">
+                                <option value="">Seleccione categoría...</option>
+                                <option value="BALIZAS ESTROBOSCÓPICAS">BALIZAS ESTROBOSCÓPICAS</option>
+                                <option value="DETECTORES DE HUMO">DETECTORES DE HUMO</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Código / ID Elemento *</label>
+                            <select id="comp-id" class="form-select fw-bold text-success" required onchange="autoFillComplementaryData()">
+                                <option value="">Seleccione o escanee...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold">Ubicación / Área *</label>
+                            <input type="text" id="comp-location" class="form-control" required placeholder="Ej: OFICINA PRINCIPAL">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Responsable *</label>
+                            <input type="text" id="comp-responsible" class="form-control" required placeholder="Nombre del responsable">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Fecha de Inspección *</label>
+                            <input type="date" id="comp-date" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <!-- Tabla de Verificación Dinámica según Categoría -->
+                <div class="card card-custom p-4 mb-4">
+                    <h4 class="header-title border-bottom pb-2 mb-3">
+                        <i class="fa-solid fa-list-check me-2"></i>Verificación del Equipo (<span id="checklist-category-label">Seleccione categoría</span>)
+                    </h4>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sst">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">Elemento a Verificar</th>
+                                    <th style="width: 22%;">Cumple / No Cumple / N/A</th>
+                                    <th style="width: 38%;">Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="checklist-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Estado, Fotos y Firma -->
+                <div class="card card-custom p-4 mb-4">
+                    <h4 class="header-title border-bottom pb-2 mb-3">
+                        <i class="fa-solid fa-camera-retro me-2"></i>Estado, Evidencias y Firma
+                    </h4>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Estado / Estado Final *</label>
+                        <select id="comp-status" class="form-select fw-bold text-dark" required>
+                            <option value="OK" class="text-success fw-bold">🟢 CONFORME / CUMPLE (OK)</option>
+                            <option value="Observación" class="text-warning fw-bold">🟡 CUMPLE CON OBSERVACIÓN</option>
+                            <option value="No Cumple" class="text-danger fw-bold">🔴 NO CONFORME / NO CUMPLE</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tomar / Adjuntar Fotos de Evidencia *</label>
+                        <input type="file" id="comp-photo-input" accept="image/*" capture="environment" class="form-control" multiple onchange="handlePhotoUpload(event)">
+                        <small class="text-muted">Toma directamente la foto con la cámara del celular o selecciona imágenes.</small>
+                        <div id="photo-preview-container" class="d-flex flex-wrap gap-2 mt-3"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre del Inspector / Auditor SST *</label>
+                        <select id="comp-inspector" class="form-select fw-bold text-success" required>
+                            <option value="">Seleccione el inspector...</option>
+                            <option value="Paula Patiño">Paula Patiño</option>
+                            <option value="Andres Garzón">Andres Garzón</option>
+                            <option value="Ángela Tijaro">Ángela Tijaro</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 pt-2 border-top">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold mb-0">Firma Digital del Inspector</label>
+                            <button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="clearSignature()">Limpiar Firma</button>
+                        </div>
+                        <div class="signature-pad-container">
+                            <canvas id="signature-pad" class="signature-pad"></canvas>
+                        </div>
+                        <small class="text-muted">Dibuja tu firma dentro del recuadro con el dedo o el mouse.</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mb-5">
+                    <button type="button" class="btn btn-secondary px-4" onclick="showSection('dashboard')">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-lg px-5">
+                        <i class="fa-solid fa-floppy-disk me-2"></i> Guardar Inspección
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- SECTION 3: HISTORIAL -->
+        <div id="section-history" class="app-section d-none">
+            <div class="card card-custom p-4">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                    <h4 class="header-title mb-0"><i class="fa-solid fa-boxes-packing me-2"></i>Historial de Registros y Evidencias</h4>
+                    <button class="btn btn-warning text-dark fw-bold btn-sm" onclick="exportToExcel()">
+                        <i class="fa-solid fa-file-excel me-1"></i> Descargar Excel (.xlsx)
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>ID</th>
+                                <th>Categoría</th>
+                                <th>Ubicación</th>
+                                <th>Estado</th>
+                                <th>Inspector</th>
+                                <th>Fotos</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CONTENEDOR DE IMPRESIÓN DIRECTA -->
+    <div id="print-area"></div>
+
+    <!-- MODALES -->
+    <div class="modal fade no-print" id="qrModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fa-solid fa-camera me-2"></i>Escanear Código QR del Equipo</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeQRModal()"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="reader"></div>
+                    <p class="text-muted mt-2 small">Apunta con la cámara al código QR de la baliza o detector de humo.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeQRModal()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade no-print" id="detailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="modal-detail-title">Detalle de Inspección</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modal-detail-body"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap & Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const checklistByCategory = {
+            "BALIZAS ESTROBOSCÓPICAS": [
+                "Cableado",
+                "Funcionamiento",
+                "Aseo",
+                "Estado"
+            ],
+            "DETECTORES DE HUMO": [
+                "¿Señalizado y Aseado?",
+                "Los LEDS destellan",
+                "Funcionamiento sin energía?"
+            ]
+        };
+
+        const masterComplementaries = [
+            // BALIZAS ESTROBOSCÓPICAS
+            { id: "BAL-001", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "OFICINA PRINCIPAL" },
+            { id: "BAL-002", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "OFICINA NOMINA" },
+            { id: "BAL-003", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "ALMACEN 1" },
+            { id: "BAL-004", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "ALMACEN 2" },
+            { id: "BAL-005", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA DE EMERGENCIA POSCOSECHA 1" },
+            { id: "BAL-006", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "BAÑOS POSCOSECHA" },
+            { id: "BAL-007", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA DE EMERGENCIA POSCOSECHA 2" },
+            { id: "BAL-008", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "CUARTO FRIO RECEPCION EXTERNA" },
+            { id: "BAL-009", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA CUARTO FRIO RECEPCION INTERNA" },
+            { id: "BAL-010", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "SALIDA CUARTO FRIO AUXILIAR" },
+            { id: "BAL-011", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "CUARTO FRIO DESPACHOS EXTERNA" },
+            { id: "BAL-012", categoria: "BALIZAS ESTROBOSCÓPICAS", ubicacion: "CUARTO FRIO DESPACHOS INTERNA" },
+            // DETECTORES DE HUMO
+            { id: "DET-001", categoria: "DETECTORES DE HUMO", ubicacion: "OFICINA PRINCIPAL" },
+            { id: "DET-002", categoria: "DETECTORES DE HUMO", ubicacion: "OFICINA DE ATENCION" },
+            { id: "DET-003", categoria: "DETECTORES DE HUMO", ubicacion: "OFICINA NOMINA" },
+            { id: "DET-004", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN PLAGUICIDAS" },
+            { id: "DET-005", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN 1" },
+            { id: "DET-006", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN 2" },
+            { id: "DET-007", categoria: "DETECTORES DE HUMO", ubicacion: "ALMACEN 3" },
+            { id: "DET-008", categoria: "DETECTORES DE HUMO", ubicacion: "ARMADO DE CARTON 1" },
+            { id: "DET-009", categoria: "DETECTORES DE HUMO", ubicacion: "ARMADO DE CARTON 2" },
+            { id: "DET-010", categoria: "DETECTORES DE HUMO", ubicacion: "CUARTO FRIO DESPACHOS 1" },
+            { id: "DET-011", categoria: "DETECTORES DE HUMO", ubicacion: "CUARTO FRIO DESPACHOS 2" },
+            { id: "DET-012", categoria: "DETECTORES DE HUMO", ubicacion: "CUARTO FRIO AUXILIAR" }
+        ];
+        let inspections = [];
+        let currentPhotos = [];
+        let html5QrCode = null;
+        let signaturePad = null;
+
+        window.onload = function() {
+            populateComplementaryDropdown();
+            loadStorage();
+            renderChecklistTable();
+            updateDashboard();
+            renderHistory();
+            initSignaturePad();
+            checkUrlParams();
+
+            document.getElementById('comp-date').value = new Date().toISOString().split('T')[0];
+
+            if (window.history.replaceState) {
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                window.history.replaceState({path: cleanUrl}, '', cleanUrl);
+            }
+        };
+
+        function populateComplementaryDropdown(filteredCategory = "") {
+            const select = document.getElementById('comp-id');
+            select.innerHTML = '<option value="">Seleccione o escanee...</option>';
+            const list = filteredCategory
+                ? masterComplementaries.filter(c => c.categoria === filteredCategory)
+                : masterComplementaries;
+
+            list.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = `${item.id} - ${item.ubicacion} (${item.categoria})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function onCategoryChange() {
+            const cat = document.getElementById('comp-category').value;
+            populateComplementaryDropdown(cat);
+            renderChecklistTable(cat);
+            document.getElementById('comp-location').value = '';
+        }
+
+        function loadStorage() {
+            const data = localStorage.getItem('sst_complementary_data');
+            if (data) {
+                inspections = JSON.parse(data);
+            } else {
+                inspections = masterComplementaries.map(c => {
+                    const items = checklistByCategory[c.categoria] || [];
+                    return {
+                        id: c.id,
+                        category: c.categoria,
+                        location: c.ubicacion,
+                        responsible: "",
+                        status: "OK",
+                        lastInspection: "",
+                        inspector: "",
+                        checklist: items.reduce((acc, curr) => {
+                            acc[curr] = { result: 'Cumple', obs: 'OK' };
+                            return acc;
+                        }, {}),
+                        photos: [],
+                        signature: null
+                    };
+                });
+                saveStorage();
+            }
+        }
+
+        function saveStorage() {
+            try {
+                localStorage.setItem('sst_complementary_data', JSON.stringify(inspections));
+            } catch (e) {
+                console.warn("Memoria local del celular llena (posiblemente por fotos). Los datos siguen activos en memoria para exportar a Excel.", e);
+            }
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.app-section').forEach(el => el.classList.add('d-none'));
+            document.getElementById(`section-${sectionId}`).classList.remove('d-none');
+            if (sectionId === 'history') renderHistory();
+            if (sectionId === 'dashboard') updateDashboard();
+            if (sectionId === 'inspection-form') {
+                setTimeout(resizeCanvas, 200);
+            }
+        }
+
+        function renderChecklistTable(category = "") {
+            const tbody = document.getElementById('checklist-tbody');
+            const label = document.getElementById('checklist-category-label');
+            tbody.innerHTML = '';
+
+            if (!category) {
+                label.innerText = "Seleccione categoría";
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Selecciona una categoría arriba para cargar sus criterios de verificación.</td></tr>';
+                return;
+            }
+
+            label.innerText = category;
+            const items = checklistByCategory[category] || [];
+            items.forEach((item) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-dark">${item}</td>
+                    <td>
+                        <select class="form-select form-select-sm check-result" data-item="${item}">
+                            <option value="Cumple" selected>Cumple</option>
+                            <option value="No Cumple">No Cumple</option>
+                            <option value="N/A">N/A</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm check-obs" data-item="${item}" placeholder="Observación detallada...">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        function autoFillComplementaryData() {
+            const id = document.getElementById('comp-id').value;
+            if (!id) return;
+
+            const master = masterComplementaries.find(c => c.id === id);
+            if (master) {
+                document.getElementById('comp-category').value = master.categoria;
+                populateComplementaryDropdown(master.categoria);
+                document.getElementById('comp-id').value = id;
+                renderChecklistTable(master.categoria);
+                document.getElementById('comp-location').value = master.ubicacion;
+            }
+
+            const existing = inspections.find(i => i.id === id);
+            if (existing) {
+                document.getElementById('comp-responsible').value = existing.responsible || '';
+                document.getElementById('comp-status').value = existing.status || 'OK';
+
+                if (existing.checklist) {
+                    document.querySelectorAll('.check-result').forEach(sel => {
+                        const item = sel.dataset.item;
+                        if (existing.checklist[item]) sel.value = existing.checklist[item].result;
+                    });
+                    document.querySelectorAll('.check-obs').forEach(inp => {
+                        const item = inp.dataset.item;
+                        if (existing.checklist[item]) inp.value = existing.checklist[item].obs;
+                    });
+                }
+
+                currentPhotos = [...(existing.photos || [])];
+                renderPhotoPreviews();
+
+                if (existing.signature && signaturePad) {
+                    signaturePad.fromDataURL(existing.signature);
+                } else if (signaturePad) {
+                    signaturePad.clear();
+                }
+            } else {
+                currentPhotos = [];
+                renderPhotoPreviews();
+                if (signaturePad) signaturePad.clear();
+            }
+        }
+
+        function initSignaturePad() {
+            const canvas = document.getElementById('signature-pad');
+            signaturePad = new SignaturePad(canvas, {
+                backgroundColor: 'rgb(255, 255, 255)',
+                penColor: 'rgb(0, 0, 0)'
+            });
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        }
+
+        function resizeCanvas() {
+            const canvas = document.getElementById('signature-pad');
+            if (!canvas || !signaturePad) return;
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            const data = signaturePad.toData();
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+            signaturePad.clear();
+            signaturePad.fromData(data);
+        }
+
+        function clearSignature() {
+            if (signaturePad) signaturePad.clear();
+        }
+
+        function handlePhotoUpload(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const scale = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scale;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        currentPhotos.push(canvas.toDataURL('image/jpeg', 0.7));
+                        renderPhotoPreviews();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            event.target.value = '';
+        }
+
+        function renderPhotoPreviews() {
+            const container = document.getElementById('photo-preview-container');
+            container.innerHTML = '';
+            currentPhotos.forEach((photo, index) => {
+                const div = document.createElement('div');
+                div.className = 'photo-container';
+                div.innerHTML = `
+                    <img src="${photo}" class="photo-preview">
+                    <button type="button" class="btn-remove-photo" onclick="removePhoto(${index})">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removePhoto(index) {
+            currentPhotos.splice(index, 1);
+            renderPhotoPreviews();
+        }
+
+        function saveInspection(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('comp-id').value;
+            const category = document.getElementById('comp-category').value;
+            const location = document.getElementById('comp-location').value;
+            const responsible = document.getElementById('comp-responsible').value;
+            const date = document.getElementById('comp-date').value;
+            const status = document.getElementById('comp-status').value;
+            const inspector = document.getElementById('comp-inspector').value;
+
+            const checklist = {};
+            document.querySelectorAll('.check-result').forEach(sel => {
+                const item = sel.dataset.item;
+                const obs = document.querySelector(`.check-obs[data-item="${item}"]`).value;
+                checklist[item] = { result: sel.value, obs: obs };
+            });
+
+            const signatureData = (signaturePad && !signaturePad.isEmpty()) ? signaturePad.toDataURL() : null;
+
+            const record = {
+                id,
+                category,
+                location,
+                responsible,
+                status,
+                lastInspection: date,
+                inspector,
+                checklist,
+                photos: [...currentPhotos],
+                signature: signatureData
+            };
+
+            const idx = inspections.findIndex(i => i.id === id);
+            if (idx > -1) {
+                inspections[idx] = record;
+            } else {
+                inspections.push(record);
+            }
+
+            saveStorage();
+            alert(`✅ Inspección de ${id} (${category}) guardada correctamente.`);
+            showSection('history');
+        }
+        function updateDashboard() {
+            const total = inspections.length;
+            const ok = inspections.filter(i => i.status === 'OK').length;
+            const warn = inspections.filter(i => i.status === 'Observación').length;
+            const danger = inspections.filter(i => i.status === 'No Cumple').length;
+
+            document.getElementById('dash-total').innerText = total;
+            document.getElementById('dash-ok').innerText = ok;
+            document.getElementById('dash-warn').innerText = warn;
+            document.getElementById('dash-danger').innerText = danger;
+        }
+
+        function renderHistory() {
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = '';
+
+            inspections.forEach((item) => {
+                let badgeClass = 'badge-ok';
+                if (item.status === 'Observación') badgeClass = 'badge-warn text-dark';
+                if (item.status === 'No Cumple') badgeClass = 'badge-danger';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.lastInspection || '<span class="text-muted">Pendiente</span>'}</td>
+                    <td class="fw-bold">${item.id}</td>
+                    <td><span class="badge bg-secondary">${item.category || ''}</span></td>
+                    <td>${item.location}</td>
+                    <td><span class="badge ${badgeClass}">${item.status}</span></td>
+                    <td>${item.inspector || '<span class="text-muted">-</span>'}</td>
+                    <td><i class="fa-solid fa-image text-secondary me-1"></i> ${(item.photos || []).length}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewDetails('${item.id}')" title="Ver Detalle">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-dark me-1" onclick="printInspection('${item.id}')" title="Imprimir / Guardar PDF">
+                            <i class="fa-solid fa-print"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="editItem('${item.id}')" title="Inspeccionar">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editItem(id) {
+            showSection('inspection-form');
+            const master = masterComplementaries.find(c => c.id === id);
+            if (master) {
+                document.getElementById('comp-category').value = master.categoria;
+                populateComplementaryDropdown(master.categoria);
+            }
+            document.getElementById('comp-id').value = id;
+            autoFillComplementaryData();
+        }
+
+        function viewDetails(id) {
+            const item = inspections.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('modal-detail-title').innerText = `${item.category} - ${item.id} (${item.location})`;
+
+            let checklistHtml = '<table class="table table-sm table-bordered mt-2"><thead><tr><th>Elemento</th><th>Estado</th><th>Observación</th></tr></thead><tbody>';
+            for (const [k, v] of Object.entries(item.checklist || {})) {
+                checklistHtml += `<tr><td>${k}</td><td><strong>${v.result}</strong></td><td>${v.obs || '-'}</td></tr>`;
+            }
+            checklistHtml += '</tbody></table>';
+
+            let photosHtml = '';
+            if (item.photos && item.photos.length > 0) {
+                photosHtml = '<div class="d-flex flex-wrap gap-2 mt-2">';
+                item.photos.forEach(p => {
+                    photosHtml += `<img src="${p}" style="width:120px; height:120px; object-fit:cover; border-radius:6px; border:1px solid #ccc;">`;
+                });
+                photosHtml += '</div>';
+            } else {
+                photosHtml = '<p class="text-muted small">Sin fotos registradas.</p>';
+            }
+
+            let sigHtml = item.signature
+                ? `<img src="${item.signature}" style="max-height:100px; border:1px solid #ddd; border-radius:4px;">`
+                : '<p class="text-muted small">Sin firma registrada.</p>';
+
+            document.getElementById('modal-detail-body').innerHTML = `
+                <p><strong>Empresa:</strong> FALCON FARMS DE COLOMBIA S.A – FINCA TORREMOLINOS</p>
+                <p><strong>Categoría:</strong> ${item.category || ''} | <strong>Ubicación:</strong> ${item.location} | <strong>Responsable:</strong> ${item.responsible || 'N/A'}</p>
+                <p><strong>Fecha:</strong> ${item.lastInspection || 'N/A'} | <strong>Estado:</strong> ${item.status} | <strong>Inspector:</strong> ${item.inspector || 'N/A'}</p>
+                <h6 class="fw-bold mt-3">Lista de Chequeo:</h6>
+                ${checklistHtml}
+                <h6 class="fw-bold mt-3">Evidencias Fotográficas:</h6>
+                ${photosHtml}
+                <h6 class="fw-bold mt-3">Firma del Inspector:</h6>
+                ${sigHtml}
+            `;
+
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            modal.show();
+        }
+
+        function printInspection(id) {
+            const item = inspections.find(i => i.id === id);
+            if (!item) return;
+
+            let rowsHtml = '';
+            for (const [k, v] of Object.entries(item.checklist || {})) {
+                rowsHtml += `<tr><td>${k}</td><td style="text-align:center;"><strong>${v.result}</strong></td><td>${v.obs || '-'}</td></tr>`;
+            }
+
+            let photosHtml = '';
+            if (item.photos && item.photos.length > 0) {
+                item.photos.forEach(p => {
+                    photosHtml += `<img src="${p}" style="width:150px; height:150px; object-fit:cover; margin:4px; border:1px solid #ccc;">`;
+                });
+            }
+
+            document.getElementById('print-area').innerHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 15px;">
+                    <h3 style="color:#1b5e20; margin-bottom:4px;">FALCON FARMS DE COLOMBIA S.A – FINCA TORREMOLINOS</h3>
+                    <h5 style="margin-top:0;">ACTA DE INSPECCIÓN - ${item.category} (${item.id})</h5>
+                    <p><strong>Ubicación:</strong> ${item.location} | <strong>Responsable:</strong> ${item.responsible || 'N/A'} | <strong>Fecha:</strong> ${item.lastInspection || 'N/A'}</p>
+                    <p><strong>Estado:</strong> ${item.status} | <strong>Inspector SST:</strong> ${item.inspector || 'N/A'}</p>
+                    <table border="1" cellpadding="6" cellspacing="0" style="width:100%; border-collapse:collapse; font-size:12px;">
+                        <thead><tr style="background:#e8f5e9;"><th>Elemento Verificado</th><th>Resultado</th><th>Observaciones</th></tr></thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <div style="margin-top:12px;"><strong>Evidencias:</strong><br>${photosHtml || 'Sin fotos'}</div>
+                    <div style="margin-top:14px;"><strong>Firma del Inspector:</strong><br>${item.signature ? `<img src="${item.signature}" style="height:80px; border:1px solid #ccc;">` : 'Sin firma'}</div>
+                </div>
+            `;
+            window.print();
+        }
+
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const idParam = urlParams.get('id');
+            if (idParam) {
+                const found = masterComplementaries.find(c => c.id.toLowerCase() === idParam.toLowerCase());
+                if (found) {
+                    showSection('inspection-form');
+                    document.getElementById('comp-category').value = found.categoria;
+                    populateComplementaryDropdown(found.categoria);
+                    document.getElementById('comp-id').value = found.id;
+                    autoFillComplementaryData();
+                }
+            }
+        }
+
+        function openQRModal() {
+            const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+            modal.show();
+
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    let scannedId = decodedText;
+                    try {
+                        const url = new URL(decodedText);
+                        const paramId = url.searchParams.get("id");
+                        if (paramId) scannedId = paramId;
+                    } catch (e) {}
+
+                    const matched = masterComplementaries.find(c => c.id.toLowerCase() === scannedId.toLowerCase());
+                    if (matched) {
+                        closeQRModal();
+                        showSection('inspection-form');
+                        document.getElementById('comp-category').value = matched.categoria;
+                        populateComplementaryDropdown(matched.categoria);
+                        document.getElementById('comp-id').value = matched.id;
+                        autoFillComplementaryData();
+                    } else {
+                        alert(`Código QR no reconocido en el catálogo: ${decodedText}`);
+                    }
+                },
+                () => {}
+            ).catch(() => {});
+        }
+
+        function closeQRModal() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                }).catch(() => {});
+            }
+            const modalEl = document.getElementById('qrModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+        async function exportToExcel() {
+            const workbook = new ExcelJS.Workbook();
+            workbook.creator = 'FALCON FARMS DE COLOMBIA S.A';
+            workbook.created = new Date();
+
+            // Pega aquí tu cadena Base64 real del logo si deseas incrustar la imagen
+            const COMPANY_LOGO_BASE64 = "";
+
+            let logoImageId = null;
+            if (COMPANY_LOGO_BASE64 && COMPANY_LOGO_BASE64.trim() !== "") {
+                try {
+                    const cleanBase64 = COMPANY_LOGO_BASE64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+                    logoImageId = workbook.addImage({
+                        base64: cleanBase64,
+                        extension: 'png'
+                    });
+                } catch (e) {
+                    console.warn("No se pudo cargar el logo Base64 en Excel:", e);
+                }
+            }
+
+            // =========================================================
+            // HOJA 1: CONSOLIDADO BALIZAS Y DETECTORES DE HUMO
+            // =========================================================
+            const ws1 = workbook.addWorksheet('Consolidado Equipos');
+            ws1.views = [{ showGridLines: true }];
+
+            const headers1 = [
+                'ID', 'Categoría', 'Ubicación', 'Responsable del Área', 'Última Inspección',
+                'Estado', 'Inspector SST', 'Verificación / Observaciones', 'Cant. Fotos', 'Firma Registrada'
+            ];
+
+            ws1.mergeCells('A1:J1');
+            ws1.getCell('A1').value = 'FALCON FARMS DE COLOMBIA S.A – FINCA TORREMOLINOS';
+            ws1.getCell('A1').font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FF1B5E20' } };
+            ws1.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+            ws1.getRow(1).height = 28;
+
+            ws1.mergeCells('A2:J2');
+            ws1.getCell('A2').value = 'INSPECCIÓN DE BALIZAS ESTROBOSCÓPICAS Y DETECTORES DE HUMO';
+            ws1.getCell('A2').font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF2E7D32' } };
+            ws1.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
+            ws1.getRow(2).height = 20;
+
+            if (logoImageId !== null) {
+                ws1.addImage(logoImageId, {
+                    tl: { col: 0.1, row: 0.15 },
+                    ext: { width: 110, height: 42 }
+                });
+            }
+
+            const headerRow1 = ws1.getRow(4);
+            headerRow1.height = 24;
+            headers1.forEach((h, idx) => {
+                const cell = headerRow1.getCell(idx + 1);
+                cell.value = h;
+                cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B5E20' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                cell.border = {
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+            });
+
+            inspections.forEach((item, index) => {
+                const rowNum = 5 + index;
+                const row = ws1.getRow(rowNum);
+                row.height = 22;
+
+                const checklistSummary = Object.entries(item.checklist || {})
+                    .map(([k, v]) => `${k}: ${v.result}${v.obs ? ` (${v.obs})` : ''}`)
+                    .join(' | ');
+
+                const values = [
+                    item.id,
+                    item.category || '',
+                    item.location,
+                    item.responsible || '',
+                    item.lastInspection || '',
+                    item.status,
+                    item.inspector || '',
+                    checklistSummary,
+                    (item.photos || []).length,
+                    item.signature ? 'Sí' : 'No'
+                ];
+
+                values.forEach((val, cIdx) => {
+                    const cell = row.getCell(cIdx + 1);
+                    cell.value = val;
+                    cell.font = { name: 'Calibri', size: 10 };
+                    cell.alignment = { vertical: 'middle', horizontal: cIdx === 7 ? 'left' : 'center', wrapText: true };
+                    cell.border = {
+                        top: { style: 'thin' }, left: { style: 'thin' },
+                        bottom: { style: 'thin' }, right: { style: 'thin' }
+                    };
+
+                    if (cIdx === 5) {
+                        if (val === 'OK') {
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4EDDA' } };
+                            cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF155724' } };
+                        } else if (val === 'Observación') {
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3CD' } };
+                            cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF856404' } };
+                        } else if (val === 'No Cumple') {
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8D7DA' } };
+                            cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF721C24' } };
+                        }
+                    }
+                });
+            });
+
+            ws1.columns = [
+                { width: 12 }, { width: 24 }, { width: 34 }, { width: 22 }, { width: 16 },
+                { width: 16 }, { width: 20 }, { width: 48 }, { width: 12 }, { width: 16 }
+            ];
+            // =========================================================
+            // HOJA 2: DETALLE DE VERIFICACIÓN, FOTOS Y FIRMAS
+            // =========================================================
+            const ws2 = workbook.addWorksheet('Detalle y Evidencias');
+            ws2.views = [{ showGridLines: true }];
+
+            ws2.mergeCells('A1:G1');
+            ws2.getCell('A1').value = 'DETALLE DE VERIFICACIÓN, EVIDENCIAS FOTOGRÁFICAS Y FIRMAS';
+            ws2.getCell('A1').font = { name: 'Calibri', size: 13, bold: true, color: { argb: 'FF1B5E20' } };
+            ws2.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+            ws2.getRow(1).height = 26;
+
+            const headers2 = [
+                'ID', 'Categoría', 'Ubicación', 'Elemento Verificado', 'Resultado / Observación', 'Evidencias Fotográficas', 'Firma Inspector'
+            ];
+
+            const headerRow2 = ws2.getRow(3);
+            headerRow2.height = 22;
+            headers2.forEach((h, idx) => {
+                const cell = headerRow2.getCell(idx + 1);
+                cell.value = h;
+                cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E7D32' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                cell.border = {
+                    top: { style: 'thin' }, left: { style: 'thin' },
+                    bottom: { style: 'thin' }, right: { style: 'thin' }
+                };
+            });
+
+            let currentRow2 = 4;
+
+            inspections.forEach((item) => {
+                const entries = Object.entries(item.checklist || {});
+                const rowSpan = Math.max(entries.length, 1);
+                const startRow = currentRow2;
+                const endRow = startRow + rowSpan - 1;
+
+                if (rowSpan > 1) {
+                    ws2.mergeCells(`A${startRow}:A${endRow}`);
+                    ws2.mergeCells(`B${startRow}:B${endRow}`);
+                    ws2.mergeCells(`C${startRow}:C${endRow}`);
+                    ws2.mergeCells(`F${startRow}:F${endRow}`);
+                    ws2.mergeCells(`G${startRow}:G${endRow}`);
+                }
+
+                for (let r = startRow; r <= endRow; r++) {
+                    ws2.getRow(r).height = 48;
+                }
+
+                const cA = ws2.getCell(`A${startRow}`);
+                const cB = ws2.getCell(`B${startRow}`);
+                const cC = ws2.getCell(`C${startRow}`);
+
+                cA.value = item.id;
+                cB.value = item.category || '';
+                cC.value = item.location;
+
+                [cA, cB, cC].forEach(c => {
+                    c.font = { name: 'Calibri', size: 10, bold: c === cA };
+                    c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                });
+
+                if (entries.length > 0) {
+                    entries.forEach(([elem, detail], idx) => {
+                        const rNum = startRow + idx;
+                        const cD = ws2.getCell(`D${rNum}`);
+                        const cE = ws2.getCell(`E${rNum}`);
+
+                        cD.value = elem;
+                        cE.value = `${detail.result}${detail.obs ? ` — ${detail.obs}` : ''}`;
+
+                        cD.font = { name: 'Calibri', size: 10, bold: true };
+                        cD.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+
+                        cE.font = { name: 'Calibri', size: 10 };
+                        cE.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+                    });
+                } else {
+                    ws2.getCell(`D${startRow}`).value = 'Sin criterios registrados';
+                    ws2.getCell(`E${startRow}`).value = '-';
+                }
+
+                if (item.photos && item.photos.length > 0) {
+                    item.photos.forEach((photoBase64, pIdx) => {
+                        try {
+                            const cleanPhoto = photoBase64.replace(/^data:image\/(jpeg|jpg|png);base64,/, '');
+                            const imgId = workbook.addImage({
+                                base64: cleanPhoto,
+                                extension: 'jpeg'
+                            });
+                            ws2.addImage(imgId, {
+                                tl: { col: 5.1 + (pIdx * 0.45), row: (startRow - 1) + 0.1 },
+                                ext: { width: 65, height: 60 }
+                            });
+                        } catch (e) {
+                            console.warn("Error incrustando foto en Excel:", e);
+                        }
+                    });
+                }
+
+                if (item.signature) {
+                    try {
+                        const cleanSig = item.signature.replace(/^data:image\/png;base64,/, '');
+                        const sigId = workbook.addImage({
+                            base64: cleanSig,
+                            extension: 'png'
+                        });
+                        ws2.addImage(sigId, {
+                            tl: { col: 6.1, row: (startRow - 1) + 0.15 },
+                            ext: { width: 100, height: 45 }
+                        });
+                    } catch (e) {
+                        console.warn("Error incrustando firma en Excel:", e);
+                    }
+                }
+
+                for (let r = startRow; r <= endRow; r++) {
+                    for (let col = 1; col <= 7; col++) {
+                        ws2.getCell(r, col).border = {
+                            top: { style: 'thin' }, left: { style: 'thin' },
+                            bottom: { style: 'thin' }, right: { style: 'thin' }
+                        };
+                    }
+                }
+
+                currentRow2 = endRow + 1;
+            });
+
+            ws2.columns = [
+                { width: 12 }, { width: 24 }, { width: 32 }, { width: 28 },
+                { width: 38 }, { width: 28 }, { width: 22 }
+            ];
+            const buffer = await workbook.xlsx.writeBuffer();
+            const fechaHoy = new Date().toISOString().split('T')[0];
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            saveAs(blob, `Inspeccion_Balizas_Detectores_Torremolinos_${fechaHoy}.xlsx`);
+        }
+    </script>
+</body>
+</html>
