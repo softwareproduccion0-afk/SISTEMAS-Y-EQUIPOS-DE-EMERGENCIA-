@@ -424,9 +424,9 @@
                 "Estado"
             ],
             detector: [
-                "Señalizado y Aseado",
-                "Los  LEDS destellan rapidamente  (5-7s)",
-                "Funcionamiento sin energía"
+                "¿Se tiene señalizado y aseado?",
+                "¿Los LEDs destellan rápidamente en intervalos de 5 y 7 segundos?",
+                "¿Cuando no se tiene fluido eléctrico, el sensor funciona adecuadamente?"
             ]
         };
 
@@ -955,14 +955,24 @@
         }
 
         function selectEquipmentFromQR(id) {
-            showSection('inspection-form');
+            // Normalizar códigos escaneados: los QR de detectores están impresos DET-###,
+            // pero el catálogo antiguo los guarda como HUM-###. Aceptar ambos formatos.
+            const scanned = String(id || '').trim().toUpperCase();
+            let candidateIds = [scanned];
+            if (/^DET-\d{3}$/.test(scanned)) candidateIds.push(scanned.replace(/^DET-/, 'HUM-'));
+            if (/^HUM-\d{3}$/.test(scanned)) candidateIds.push(scanned.replace(/^HUM-/, 'DET-'));
+
             const select = document.getElementById('equip-id');
-            const exists = Array.from(select.options).some(o => o.value === id);
-            if (exists) {
-                select.value = id;
+            const foundValue = candidateIds.find(candidate =>
+                Array.from(select.options).some(o => o.value.toUpperCase() === candidate)
+            );
+            if (foundValue) {
+                showSection('inspection-form');
+                select.value = foundValue;
                 autoFillEquipmentData();
             } else {
-                alert(`⚠️ Código QR escaneado (${id}) no encontrado en el catálogo de balizas estroboscópicas o detectores de humo.`);
+                showSection('inspection-form');
+                alert(`⚠️ Código QR escaneado (${scanned}) no encontrado en el catálogo de balizas estroboscópicas o detectores de humo.`);
             }
         }
 
